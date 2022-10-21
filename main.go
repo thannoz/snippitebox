@@ -24,6 +24,7 @@ func main() {
 	mux.HandleFunc("/snippet/create", snippetCreate)
 
 	log.Print("Starting server on port 4000")
+
 	err := http.ListenAndServe(":4000", mux)
 	if err != nil {
 		log.Fatal(err)
