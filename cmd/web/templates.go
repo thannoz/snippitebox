@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"path/filepath"
+	"time"
 
 	"github.com/thannoz/snippetbox/internal/models"
 )
@@ -10,10 +11,24 @@ import (
 // Define a templateData type to act as the holding structure for
 // any dynamic data that we want to pass to our HTML templates.
 type templateData struct {
-	Snippet  *models.Snippet
-	Snippets []*models.Snippet
+	CurrentYear int
+	Snippet     *models.Snippet
+	Snippets    []*models.Snippet
 }
 
+// humanDate returns a nicely formatted date
+func humanDate(t time.Time) string {
+	return t.Format("02 Jan 2006 at 15:04")
+}
+
+// Initialize a template.FuncMap object and store it in a global variable. This is
+// essentially a string-keyed map which acts as a lookup between the names of our
+// custom template functions and the functions themselves.
+var functions = template.FuncMap{
+	"humanDate": humanDate,
+}
+
+// newTemplateCache automatically parses all templates in pages & partials folder
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
 
@@ -29,7 +44,9 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		// and assign it to the name variable.
 		name := filepath.Base(page)
 
-		ts, err := template.ParseFiles("./ui/html/base.gohtml")
+		// The template.FuncMap must be registered with the template set before you
+		// call the ParseFiles() method
+		ts, err := template.New(name).Funcs(functions).ParseFiles("./ui/html/base.gohtml")
 		if err != nil {
 			return nil, err
 		}
