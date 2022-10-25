@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
-	"unicode/utf8"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/thannoz/snippetbox/internal/models"
+	"github.com/thannoz/snippetbox/internal/validator"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -54,60 +53,38 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 
+	data.Form = snippetCreateForm{
+		Expires: 365,
+	}
+
 	app.render(w, http.StatusOK, "create.gohtml", data)
-	w.Write([]byte("Displaying a form to create a new snippet"))
 }
 
 // Define a snippetCreateForm struct to represent the form data and validation
 // errors for the form fields.
 type snippetCreateForm struct {
-	Title       string
-	Content     string
-	Expires     int
-	FieldErrors map[string]string
+	Title               string `form:"title"`
+	Content             string `form:"content"`
+	Expires             int    `form:"expires"`
+	validator.Validator `form:"-"`
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+	var form snippetCreateForm
+
+	err := app.decodePostForm(r, &form)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
+	form.CheckField(validator.NotBlank(form.Title), "title", "This field cannot be blank")
+	form.CheckField(validator.MaxChars(form.Title, 100), "title", "This field cannot be more than 100 characters")
+	form.CheckField(validator.NotBlank(form.Content), "content", "This field cannot be blank")
+	form.CheckField(validator.PermittedInt(form.Expires, 1, 7, 365), "expires", "This field must equal 1, 7, 365")
 
-	form := snippetCreateForm{
-		Title:       r.PostForm.Get("title"),
-		Content:     r.PostForm.Get("content"),
-		Expires:     expires,
-		FieldErrors: map[string]string{},
-	}
-
-	// Initialize a map to hold any validation errors for the form fields.
-	fieldsErrors := make(map[string]string)
-
-	if strings.TrimSpace(form.Title) == "" {
-		fieldsErrors["title"] = "This field cannot be empty"
-	} else if utf8.RuneCountInString(form.Title) > 100 {
-		fieldsErrors["title"] = "This field cannot be more than 100 characters"
-	}
-
-	if strings.TrimSpace(form.Content) == "" {
-		fieldsErrors["content"] = "This field cannot be empty"
-	}
-
-	if expires != 1 && expires != 7 && expires != 365 {
-		fieldsErrors["expires"] = "This field must equal 1, 7 or 365"
-	}
-
-	// If there are any validation errors re-display the create.tmpl template,
-	// passing in the snippetCreateForm instance as dynamic data in the Form
-	// field.
-	if len(form.FieldErrors) > 0 {
+	// If the checks failed, then re-render the template passing in the form
+	if !form.Valid() {
 		data := app.newTemplateData(r)
 		data.Form = form
 		app.render(w, http.StatusUnprocessableEntity, "create.gohtml", data)
