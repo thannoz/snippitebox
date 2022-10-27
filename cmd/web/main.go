@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"html/template"
@@ -54,6 +55,9 @@ func main() {
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
 
+	// Need to be set when https is being used
+	sessionManager.Cookie.Secure = true
+
 	// Initialze a new instance of our application struct, containing the dependencies.
 	app := &application{
 		errorLog:       errorLog,
@@ -64,15 +68,24 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
+	// Initialize a tls.Config struct to hold the non-default TLS settings we
+	// want the server to use. In this case the only thing that we're changing
+	// is the curve preferences value, so that only elliptic curves with
+	// assembly implementations are used.
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
+
 	// http.server-struct contains configuration settings
 	srv := &http.Server{
-		Addr:     *addr,
-		ErrorLog: errorLog,
-		Handler:  app.routes(),
+		Addr:      *addr,
+		ErrorLog:  errorLog,
+		Handler:   app.routes(),
+		TLSConfig: tlsConfig,
 	}
 
 	infoLog.Printf("Starting server on %s", *addr)
-	err = srv.ListenAndServe()
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	if err != nil {
 		errorLog.Fatal(err)
 	}
