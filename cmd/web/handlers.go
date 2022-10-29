@@ -234,7 +234,7 @@ func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
 	// Remove the authenticatedUserID from the session data so that the user is
 	// 'logged out'.
 	app.sessionManager.Remove(r.Context(), "authenticatedUserID")
-	app.sessionManager.Put(r.Context(), "flash", "You hav been logged out successfully")
+	app.sessionManager.Put(r.Context(), "flash", "You have been logged out successfully")
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
