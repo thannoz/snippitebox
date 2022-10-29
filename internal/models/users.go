@@ -2,7 +2,12 @@ package models
 
 import (
 	"database/sql"
+	"errors"
+	"strings"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -19,13 +24,57 @@ type UserModel struct {
 }
 
 func (m *UserModel) InsertUser(name, email, password string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return err
+	}
+
+	query := `INSERT INTO users (name, email, hashed_password, created)
+    VALUES(?, ?, ?, UTC_TIMESTAMP())`
+
+	_, err = m.DB.Exec(query, name, email, string(hashedPassword))
+	if err != nil {
+		var mySQLError *mysql.MySQLError
+		if errors.As(err, &mySQLError) {
+			if mySQLError.Number == 1062 && strings.Contains(mySQLError.Message, "users_uc_email") {
+				return ErrDuplicateEmail
+			}
+		}
+
+		return err
+	}
 	return nil
 }
 
-// Authenticate verify whether a user with provided email & password exists
-// it will return the relevant user ID if they do
 func (m *UserModel) Authenticate(email, password string) (int, error) {
-	return 0, nil
+	// Retrieve id & hashed password associated with the given email. If
+	// no match return the ErrInvalidCredentials error.
+	var id int
+	var hashedPassword []byte
+
+	query := "SELECT id, hashed_password FROM users WHERE email = ?"
+
+	err := m.DB.QueryRow(query, email).Scan(&id, &hashedPassword)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrInvalidCredentials
+		} else {
+			return 0, err
+		}
+	}
+
+	// Compare the hashed password against plaintext password
+	// if they dont match return ErrInvalidCredentials
+	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return 0, ErrInvalidCredentials
+		} else {
+			return 0, err
+		}
+	}
+
+	return id, nil
 }
 
 // Exists checks if a user with a specific ID exists
