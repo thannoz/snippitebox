@@ -2,10 +2,12 @@ package main
 
 import (
 	"html/template"
+	"io/fs"
 	"path/filepath"
 	"time"
 
 	"github.com/thannoz/snippetbox/internal/models"
+	"github.com/thannoz/snippetbox/ui"
 )
 
 // Define a templateData type to act as the holding structure for
@@ -36,33 +38,27 @@ var functions = template.FuncMap{
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
 
-	// Use the filepath.Glob() function to get a slice of all filepaths that
-	// match the pattern "./ui/html/pages/*.tmpl".
-	pages, err := filepath.Glob("./ui/html/pages/*.gohtml")
+	// Use fs.Glob() to get a slice of all filepaths in the ui.Files embedded
+	// filesystem which match the pattern 'html/pages/*.gohtml'.
+	pages, err := fs.Glob(ui.Files, "html/pages/*.gohtml")
 	if err != nil {
 		return nil, err
 	}
 
 	for _, page := range pages {
-		// Extract the file name (like 'home.tmpl') from the full filepath
-		// and assign it to the name variable.
 		name := filepath.Base(page)
 
-		// The template.FuncMap must be registered with the template set before you
-		// call the ParseFiles() method
-		ts, err := template.New(name).Funcs(functions).ParseFiles("./ui/html/base.gohtml")
-		if err != nil {
-			return nil, err
+		// Create a slice containing the filepath patterns for the templates we
+		// want to parse.
+		patterns := []string{
+			"html/base.gohtml",
+			"html/partials/*.gohtml",
+			page,
 		}
 
-		// Call ParseGlob() *on this template set* to add any partials
-		ts, err = ts.ParseGlob("./ui/html/partials/*.gohtml")
-		if err != nil {
-			return nil, err
-		}
-
-		// Parse the files into a template set.
-		ts, err = ts.ParseFiles(page)
+		// Use ParseFS() to parse the template files
+		// from the ui.Files embedded filesystem.
+		ts, err := template.New(name).Funcs(functions).ParseFS(ui.Files, patterns...)
 		if err != nil {
 			return nil, err
 		}
