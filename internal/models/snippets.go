@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+type SnippetModelInterface interface {
+	InsertSnippet(title string, content string, expires int) (int, error)
+	GetSnippet(id int) (*Snippet, error)
+	LatestSnippets() ([]*Snippet, error)
+}
+
 type Snippet struct {
 	ID      int
 	Title   string

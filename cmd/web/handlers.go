@@ -141,7 +141,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 
 	// Try to create a new user in the db. If email already exists
 	// add an error msg to the form & re-display it.
-	err = app.users.InsertUser(form.Name, form.Email, form.Password)
+	err = app.users.Insert(form.Name, form.Email, form.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrDuplicateEmail) {
 			form.AddFieldError("email", "Email is already in use")

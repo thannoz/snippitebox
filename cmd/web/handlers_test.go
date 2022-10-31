@@ -16,5 +16,5 @@ func TestPing(t *testing.T) {
 	code, _, body := ts.get(t, "/ping")
 
 	assert.Equal(t, code, http.StatusOK)
-	assert.Equal(t, body, "OK")
+	assert.Equal(t, body, "Everything is OK!")
 }
