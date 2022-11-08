@@ -68,7 +68,7 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		}
 
 		// Add the template set to the map, using the name of the page
-		// (like 'home.tmpl') as the key.
+		// (like 'home.gohtml') as the key.
 		cache[name] = ts
 	}
 	return cache, nil
