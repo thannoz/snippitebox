@@ -17,4 +17,5 @@ require (
 	github.com/alexedwards/scs/mysqlstore v0.0.0-20220528130143-d93ace5be94b
 	github.com/alexedwards/scs/v2 v2.5.0
 	github.com/go-playground/form/v4 v4.2.0
+	github.com/joho/godotenv v1.4.0
 )

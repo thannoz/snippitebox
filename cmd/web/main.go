@@ -14,6 +14,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 	"github.com/thannoz/snippetbox/internal/models"
 )
 
@@ -31,9 +32,13 @@ type application struct {
 }
 
 func main() {
-
-	addr := flag.String("addr", ":4000", "HTTP network address")
-	dsn := flag.String("dsn", "snipper:snippet187!@/snippetbox?parseTime=true", "MySQL data source name")
+	envErr := godotenv.Load(".env")
+	if envErr != nil {
+		log.Fatalf("error loading .env file")
+	}
+	// :4000
+	addr := flag.String("addr", os.Getenv("PORT"), "HTTP network address")
+	dsn := flag.String("dsn", os.Getenv("DSN_CONN"), "MySQL data source name")
 	debug := flag.Bool("debug", false, "Enable Debug mode")
 	flag.Parse()
 
