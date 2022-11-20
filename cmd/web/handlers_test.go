@@ -230,6 +230,5 @@ func TestSnippetCreate(t *testing.T) {
 
 		assert.Equal(t, code, http.StatusOK)
 		assert.StringContains(t, body, "<form action='/snippet/create' method='POST'>")
-
 	})
 }

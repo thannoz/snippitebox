@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -31,13 +32,14 @@ type application struct {
 	sessionManager *scs.SessionManager
 }
 
+// run app: go run ./cmd/web
 func main() {
 	envErr := godotenv.Load(".env")
 	if envErr != nil {
 		log.Fatalf("error loading .env file")
 	}
-	// :4000
-	addr := flag.String("addr", os.Getenv("PORT"), "HTTP network address")
+
+	addr := flag.String("addr", fmt.Sprintf(":"+os.Getenv("PORT")), "HTTP network address")
 	dsn := flag.String("dsn", os.Getenv("DSN_CONN"), "MySQL data source name")
 	debug := flag.Bool("debug", false, "Enable Debug mode")
 	flag.Parse()
